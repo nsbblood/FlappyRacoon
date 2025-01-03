@@ -188,6 +188,8 @@ canvas {
     text-align: center;
     color: white;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    transform-origin: center;
+    transition: transform 0.5s ease-out;
 }
 
 #gameOver h2 {
@@ -639,4 +641,105 @@ canvas {
     to {
         opacity: 0;
     }
+}
+
+/* Score sparkle effect */
+@keyframes scoreSparkle {
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    50% {
+        transform: scale(1.2);
+        filter: brightness(1.5) drop-shadow(0 0 10px gold);
+    }
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+.score-sparkle {
+    animation: scoreSparkle 0.5s ease-out;
+}
+
+/* High score celebration effect */
+@keyframes highScoreCelebration {
+    0% {
+        transform: scale(1);
+        opacity: 0;
+    }
+    10% {
+        transform: scale(1.5);
+        opacity: 1;
+    }
+    20% {
+        transform: scale(1.2);
+    }
+    30% {
+        transform: scale(1.4);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+.high-score-celebration {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    color: gold;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    z-index: 1000;
+    pointer-events: none;
+    animation: highScoreCelebration 2s ease-out forwards;
+}
+
+/* Floating score animation */
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50px) scale(1.5);
+        opacity: 0;
+    }
+}
+
+/* Coin sparkle animation */
+@keyframes coinSparkle {
+    0%, 100% {
+        filter: brightness(1) drop-shadow(0 0 5px gold);
+    }
+    50% {
+        filter: brightness(1.5) drop-shadow(0 0 15px gold);
+    }
+}
+
+.coin-sparkle {
+    animation: coinSparkle 0.5s ease-in-out;
+}
+
+/* Rainbow trail effect */
+@keyframes rainbow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.rainbow-trail {
+    background: linear-gradient(90deg, 
+        rgba(255,0,0,0.5), 
+        rgba(255,165,0,0.5),
+        rgba(255,255,0,0.5),
+        rgba(0,255,0,0.5),
+        rgba(0,0,255,0.5),
+        rgba(255,0,255,0.5)
+    );
+    background-size: 600% 600%;
+    animation: rainbow 2s linear infinite;
 }

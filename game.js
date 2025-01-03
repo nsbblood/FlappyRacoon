@@ -5,12 +5,12 @@ class Game {
         
         // Game configuration
         this.config = {
-            gravity: 0.4,
-            jumpForce: -7,
+            gravity: 0.4,  // Slightly reduced gravity for better control
+            jumpForce: -8,
             initialGameSpeed: 2.4,
-            gameSpeed: 2.4,
+            gameSpeed: 3,
             speedIncrease: 0.1,
-            speedIncreaseInterval: 10000,
+            speedIncreaseInterval: 10000, // Speed up every 10 seconds
             maxGameSpeed: 6,
             obstacleGap: 234,
             minObstacleHeight: 100,
@@ -18,8 +18,15 @@ class Game {
             playerSize: 120,
             foodSize: 63,
             scoreMultiplier: 0.1,
-            coinValue: 1,
-            obstacleColor: '#1e8449'
+            coinValue: 5,  // Increased coin value
+            invincibilityTime: 500, // Short invincibility after collecting coins
+            obstacleColor: '#1e8449',
+            powerUps: {
+                doublePoints: { duration: 5000, chance: 0.2 },
+                shield: { duration: 3000, chance: 0.15 },
+                miniSize: { duration: 4000, chance: 0.15 }
+            },
+            backgroundOpacity: 0.3  // Reduced background opacity
         };
         
         // Initialize game state
@@ -33,6 +40,18 @@ class Game {
         this.lastSpeedIncrease = 0;
         this.animationFrame = null;
         this.claimedRewards = JSON.parse(localStorage.getItem('claimedRewards')) || {};
+        this.powerUps = [];
+        this.activePowerUps = {
+            doublePoints: false,
+            shield: false,
+            miniSize: false
+        };
+
+        // Visual effects states
+        this.isInvincible = false;
+        this.glowIntensity = 0;
+        this.rainbowHue = 0;
+        this.lastSparkleTime = 0;
 
         // Particles system
         this.particles = [];
@@ -62,6 +81,14 @@ class Game {
         
         // Initialize the game
         this.init();
+        
+        // Add new properties for score effects
+        this.lastSparkleScore = 0;
+        this.highScoreCelebrated = false;
+        
+        // Load power-up images
+        this.powerUpImages = {};
+        this.loadPowerUpImages();
     }
     
     async init() {
@@ -442,6 +469,7 @@ class Game {
         this.obstacles = [];
         this.foods = [];
         this.particles = [];
+        this.powerUps = [];
 
         // Reset player position
         this.player = {
@@ -474,6 +502,7 @@ class Game {
         this.obstacles = [];
         this.foods = [];
         this.particles = [];
+        this.powerUps = [];
         
         // Set initial player position
         this.player = {
@@ -566,29 +595,7 @@ class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw background with enhanced effects
-        this.ctx.save();
-        // Add a subtle zoom effect to the background
-        const scale = 1.1;
-        const scaledWidth = this.canvas.width * scale;
-        const scaledHeight = this.canvas.height * scale;
-        const offsetX = (scaledWidth - this.canvas.width) / 2;
-        const offsetY = (scaledHeight - this.canvas.height) / 2;
-        
-        // Create a subtle parallax effect
-        const parallaxOffset = (currentTime * 0.03) % this.canvas.width;
-        
-        // Draw background with enhanced quality
-        this.ctx.drawImage(this.backgroundImage, -offsetX - parallaxOffset, -offsetY, scaledWidth, scaledHeight);
-        this.ctx.drawImage(this.backgroundImage, -offsetX - parallaxOffset + this.canvas.width, -offsetY, scaledWidth, scaledHeight);
-        
-        // Add a subtle overlay gradient for depth
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        this.ctx.restore();
+        this.updateBackground();
 
         // Draw particles with enhanced glow
         this.ctx.save();
@@ -645,37 +652,7 @@ class Game {
         });
 
         // Draw player with enhanced effects
-        this.ctx.save();
-        
-        // Calculate rotation based on velocity
-        const rotation = Math.min(Math.max(this.player.velocity * 0.05, -0.5), 0.5);
-        
-        // Add shadow for depth
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = 15;
-        this.ctx.shadowOffsetX = 5;
-        this.ctx.shadowOffsetY = 5;
-        
-        // Apply rotation
-        this.ctx.translate(
-            this.player.x + this.player.width / 2,
-            this.player.y + this.player.height / 2
-        );
-        this.ctx.rotate(rotation);
-        
-        // Draw player with slight scale animation
-        const bounce = Math.sin(currentTime * 0.01) * 0.03;
-        this.ctx.scale(1 + bounce, 1 + bounce);
-        
-        this.ctx.drawImage(
-            this.playerImage,
-            -this.player.width / 2,
-            -this.player.height / 2,
-            this.player.width,
-            this.player.height
-        );
-        
-        this.ctx.restore();
+        this.drawPlayer();
 
         // Draw food with enhanced effects
         this.foods.forEach(food => {
@@ -712,40 +689,12 @@ class Game {
             }
         });
 
-        // Draw score with enhanced text effects
-        this.ctx.save();
-        this.ctx.fillStyle = 'white';
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        this.ctx.shadowBlur = 10;
-        this.ctx.font = 'bold 32px Arial';
-        this.ctx.textAlign = 'left';
-        this.ctx.textBaseline = 'top';
-        
-        // Add score animation
-        const displayScore = Math.floor(this.score);
-        const scoreScale = 1 + Math.sin(currentTime * 0.01) * 0.05;
-        
-        this.ctx.save();
-        this.ctx.translate(30, 30);
-        this.ctx.scale(scoreScale, scoreScale);
-        this.ctx.fillText(`Score: ${displayScore}`, 0, 0);
-        this.ctx.restore();
-        
-        // Draw coins with gold gradient
-        this.ctx.save();
-        const coinGradient = this.ctx.createLinearGradient(20, 60, 20, 90);
-        coinGradient.addColorStop(0, '#ffd700');
-        coinGradient.addColorStop(1, '#ffb900');
-        this.ctx.fillStyle = coinGradient;
-        this.ctx.fillText(`Coins: ${this.coins}`, 20, 60);
-        this.ctx.restore();
-        
-        // Draw high score
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText(`High Score: ${this.highScore}`, this.canvas.width - 20, 20);
-        
-        this.ctx.restore();
+        // Draw power-ups
+        this.drawPowerUps();
 
+        // Draw score with enhanced text effects
+        this.drawScore();
+        
         // Update game state
         this.update(deltaTime);
         
@@ -753,6 +702,156 @@ class Game {
         if (!this.gameOver) {
             this.animationFrame = requestAnimationFrame((time) => this.gameLoop(time));
         }
+    }
+
+    updateBackground() {
+        this.ctx.save();
+        
+        // Reduced opacity for calmer background
+        this.ctx.globalAlpha = this.config.backgroundOpacity;
+        
+        // Softer blur effect
+        this.ctx.filter = 'blur(4px) brightness(0.9)';
+        
+        // Draw background with enhanced quality
+        this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
+        
+        // Add a soothing gradient overlay
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.ctx.restore();
+    }
+
+    drawPlayer() {
+        this.ctx.save();
+        
+        // Rainbow effect during invincibility
+        if (this.isInvincible) {
+            this.ctx.shadowColor = `hsl(${this.rainbowHue}, 100%, 50%)`;
+            this.ctx.shadowBlur = 20;
+            this.rainbowHue = (this.rainbowHue + 5) % 360;
+        }
+        
+        // Calculate rotation based on velocity
+        const rotation = Math.min(Math.max(this.player.velocity * 0.05, -0.5), 0.5);
+        
+        // Add floating animation
+        const floatOffset = Math.sin(this.lastTime * 0.005) * 3;
+        
+        // Position with floating effect
+        this.ctx.translate(
+            this.player.x + this.player.width / 2,
+            this.player.y + this.player.height / 2 + floatOffset
+        );
+        
+        // Rotate
+        this.ctx.rotate(rotation);
+        
+        // Add glow effect
+        this.ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+        this.ctx.shadowBlur = 10 + Math.sin(this.lastTime * 0.01) * 5;
+        
+        // Draw player with slight scale animation
+        const bounce = Math.sin(this.lastTime * 0.01) * 0.03;
+        this.ctx.scale(1 + bounce, 1 + bounce);
+        
+        // Draw the player
+        this.ctx.drawImage(
+            this.playerImage,
+            -this.player.width / 2,
+            -this.player.height / 2,
+            this.player.width,
+            this.player.height
+        );
+        
+        this.ctx.restore();
+    }
+
+    drawScore() {
+        this.ctx.save();
+        this.ctx.fillStyle = 'white';
+        this.ctx.strokeStyle = 'black';
+        this.ctx.lineWidth = 3;
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.textAlign = 'right';
+        
+        const displayScore = Math.floor(this.score);
+        
+        // Check for every 10 points
+        if (displayScore > 0 && displayScore % 10 === 0 && displayScore !== this.lastSparkleScore) {
+            this.addScoreSparkle();
+            this.lastSparkleScore = displayScore;
+        }
+
+        // Check for new high score
+        if (displayScore > this.highScore && !this.highScoreCelebrated) {
+            this.celebrateHighScore();
+            this.highScoreCelebrated = true;
+        }
+        
+        // Draw score with animation
+        const scoreScale = 1 + Math.sin(this.lastTime * 0.01) * 0.05;
+        
+        this.ctx.save();
+        this.ctx.translate(30, 30);
+        this.ctx.scale(scoreScale, scoreScale);
+        this.ctx.strokeText(displayScore, 0, 0);
+        this.ctx.fillText(displayScore, 0, 0);
+        this.ctx.restore();
+        
+        // Draw high score
+        this.ctx.font = '18px Arial';
+        this.ctx.strokeText(`High Score: ${this.highScore}`, this.canvas.width - 20, 20);
+        this.ctx.fillText(`High Score: ${this.highScore}`, this.canvas.width - 20, 20);
+        
+        this.ctx.restore();
+    }
+
+    addScoreSparkle() {
+        // Create sparkle element
+        const sparkle = document.createElement('div');
+        sparkle.className = 'score-sparkle';
+        sparkle.style.position = 'fixed';
+        sparkle.style.left = '30px';
+        sparkle.style.top = '30px';
+        sparkle.style.fontSize = '24px';
+        sparkle.style.color = 'gold';
+        sparkle.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8)';
+        sparkle.textContent = '+10';
+        document.body.appendChild(sparkle);
+
+        // Remove sparkle after animation
+        setTimeout(() => {
+            sparkle.remove();
+        }, 500);
+    }
+
+    celebrateHighScore() {
+        // Create celebration element
+        const celebration = document.createElement('div');
+        celebration.className = 'high-score-celebration';
+        celebration.textContent = 'NEW HIGH SCORE! 🏆';
+        document.body.appendChild(celebration);
+
+        // Create particle effects
+        for (let i = 0; i < 20; i++) {
+            this.particles.push(new Particle(
+                this.canvas.width / 2,
+                this.canvas.height / 2,
+                Math.random() * 4 - 2,
+                Math.random() * -4 - 2,
+                'gold'
+            ));
+        }
+
+        // Remove celebration after animation
+        setTimeout(() => {
+            celebration.remove();
+        }, 2000);
     }
 
     update(deltaTime) {
@@ -822,6 +921,29 @@ class Game {
         // Remove collected and off-screen food
         this.foods = this.foods.filter(food => !food.collected && food.x + food.width > 0);
 
+        // Update power-ups
+        this.powerUps.forEach(powerUp => {
+            if (!powerUp.collected) {
+                powerUp.x -= this.config.gameSpeed;
+
+                // Check for collection
+                if (this.checkCollision(this.player, powerUp)) {
+                    powerUp.collected = true;
+                    this.activatePowerUp(powerUp.type);
+                }
+            }
+        });
+
+        // Remove off-screen power-ups
+        this.powerUps = this.powerUps.filter(powerUp => 
+            !powerUp.collected && powerUp.x + powerUp.width > 0
+        );
+
+        // Randomly add new power-ups
+        if (Math.random() < 0.005) {  // 0.5% chance each frame
+            this.addPowerUp();
+        }
+
         // Update particles
         this.particles = this.particles.filter(particle => {
             particle.update();
@@ -882,37 +1004,163 @@ class Game {
         this.foods.push(food);
     }
 
+    addPowerUp() {
+        const types = Object.keys(this.config.powerUps);
+        const type = types[Math.floor(Math.random() * types.length)];
+        
+        if (Math.random() < this.config.powerUps[type].chance) {
+            const powerUp = {
+                x: this.canvas.width,
+                y: Math.random() * (this.canvas.height - 40),
+                width: 40,
+                height: 40,
+                type: type,
+                collected: false
+            };
+            
+            this.powerUps.push(powerUp);
+        }
+    }
+
+    drawPowerUps() {
+        this.powerUps.forEach(powerUp => {
+            if (!powerUp.collected) {
+                this.ctx.save();
+                
+                // Add floating animation
+                const floatOffset = Math.sin(this.lastTime * 0.005) * 5;
+                
+                // Add glow effect
+                this.ctx.shadowColor = this.getPowerUpColor(powerUp.type);
+                this.ctx.shadowBlur = 15;
+                
+                // Draw power-up with rotation
+                this.ctx.translate(
+                    powerUp.x + powerUp.width / 2,
+                    powerUp.y + powerUp.height / 2 + floatOffset
+                );
+                this.ctx.rotate(this.lastTime * 0.002);
+                
+                // Draw icon or placeholder
+                this.ctx.fillStyle = this.getPowerUpColor(powerUp.type);
+                this.ctx.fillRect(
+                    -powerUp.width / 2,
+                    -powerUp.height / 2,
+                    powerUp.width,
+                    powerUp.height
+                );
+                
+                this.ctx.restore();
+            }
+        });
+    }
+
+    getPowerUpColor(type) {
+        const colors = {
+            doublePoints: '#FFD700',  // Gold
+            shield: '#00FFFF',        // Cyan
+            miniSize: '#FF69B4'       // Pink
+        };
+        return colors[type] || '#FFFFFF';
+    }
+
+    activatePowerUp(type) {
+        this.activePowerUps[type] = true;
+        
+        // Apply power-up effects
+        switch(type) {
+            case 'doublePoints':
+                this.config.scoreMultiplier *= 2;
+                break;
+            case 'miniSize':
+                this.player.width *= 0.7;
+                this.player.height *= 0.7;
+                break;
+            case 'shield':
+                this.isInvincible = true;
+                break;
+        }
+        
+        // Create celebration effect
+        for (let i = 0; i < 20; i++) {
+            const angle = (Math.PI * 2 / 20) * i;
+            const speed = 2 + Math.random() * 2;
+            this.particles.push(new Particle(
+                this.player.x + this.player.width / 2,
+                this.player.y + this.player.height / 2,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                this.getPowerUpColor(type)
+            ));
+        }
+        
+        // Reset power-up after duration
+        setTimeout(() => {
+            this.deactivatePowerUp(type);
+        }, this.config.powerUps[type].duration);
+    }
+
+    deactivatePowerUp(type) {
+        this.activePowerUps[type] = false;
+        
+        switch(type) {
+            case 'doublePoints':
+                this.config.scoreMultiplier /= 2;
+                break;
+            case 'miniSize':
+                this.player.width /= 0.7;
+                this.player.height /= 0.7;
+                break;
+            case 'shield':
+                this.isInvincible = false;
+                break;
+        }
+    }
+
     handleCollision() {
-        if (!this.gameOver) {
+        if (!this.gameOver && !this.isInvincible) {
             this.gameOver = true;
             this.gameStarted = false;
 
-            // Create particle effect on collision
-            for (let i = 0; i < 20; i++) {
+            // Create explosion particle effect
+            for (let i = 0; i < 40; i++) {
+                const angle = (Math.PI * 2 / 40) * i;
+                const speed = 2 + Math.random() * 3;
+                const color = `hsl(${Math.random() * 60}, 100%, 70%)`; // Yellow-orange colors
+                
                 this.particles.push(new Particle(
                     this.player.x + this.player.width / 2,
                     this.player.y + this.player.height / 2,
-                    Math.random() * 2 - 1,
-                    Math.random() * 2 - 1,
-                    'white'
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed,
+                    color
                 ));
             }
 
+            // Update high score with celebration
             if (this.score > this.highScore) {
                 this.highScore = Math.floor(this.score);
                 localStorage.setItem('highScore', this.highScore);
+                this.celebrateHighScore();
             }
 
+            // Update coins with sparkle effect
             this.savedCoins += this.coins;
             localStorage.setItem('coins', this.savedCoins);
+            document.getElementById('coinBalance').textContent = this.savedCoins;
 
-            // Add slight delay before showing game over screen
+            // Show game over screen with animation
+            const gameOver = document.getElementById('gameOver');
+            gameOver.style.transform = 'scale(0)';
+            gameOver.style.display = 'flex';
+            
+            // Animate game over screen
             setTimeout(() => {
                 document.getElementById('finalScore').textContent = Math.floor(this.score);
                 document.getElementById('finalCoins').textContent = this.coins;
-                document.getElementById('gameCanvas').style.display = 'none';
-                document.getElementById('gameOver').style.display = 'flex';
-            }, 800);
+                gameOver.style.transition = 'transform 0.5s ease-out';
+                gameOver.style.transform = 'scale(1)';
+            }, 100);
 
             if (this.animationFrame) {
                 cancelAnimationFrame(this.animationFrame);
@@ -921,24 +1169,81 @@ class Game {
     }
 
     checkCollision(rect1, rect2) {
-        return rect1.x < rect2.x + rect2.width &&
-               rect1.x + rect1.width > rect2.x &&
-               rect1.y < rect2.y + rect2.height &&
-               rect1.y + rect1.height > rect2.y;
+        // Add forgiving hitbox
+        const padding = 8;
+        const r1 = {
+            x: rect1.x + padding,
+            y: rect1.y + padding,
+            width: rect1.width - padding * 2,
+            height: rect1.height - padding * 2
+        };
+        
+        const r2 = {
+            x: rect2.x + padding,
+            y: rect2.y + padding,
+            width: rect2.width - padding * 2,
+            height: rect2.height - padding * 2
+        };
+        
+        return r1.x < r2.x + r2.width &&
+               r1.x + r1.width > r2.x &&
+               r1.y < r2.y + r2.height &&
+               r1.y + r1.height > r2.y;
     }
 
     collectFood(food) {
+        // Increase score and coins
         this.coins += this.config.coinValue;
+        this.score += 5;  // Bonus score for collecting coins
         
-        // Create particle effect for coin collection
-        for (let i = 0; i < 10; i++) {
+        // Trigger invincibility
+        this.isInvincible = true;
+        setTimeout(() => {
+            this.isInvincible = false;
+        }, this.config.invincibilityTime);
+        
+        // Create sparkle particles
+        for (let i = 0; i < 15; i++) {
+            const angle = (Math.PI * 2 / 15) * i;
+            const speed = 2 + Math.random() * 2;
+            const color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+            
             this.particles.push(new Particle(
                 food.x + food.width / 2,
                 food.y + food.height / 2,
-                Math.random() * 2 - 1,
-                Math.random() * 2 - 1,
-                '#ffd700'
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                color
             ));
+        }
+        
+        // Create floating score text
+        const scoreText = document.createElement('div');
+        scoreText.textContent = `+${this.config.coinValue}`;
+        scoreText.style.position = 'absolute';
+        scoreText.style.left = `${food.x + food.width/2}px`;
+        scoreText.style.top = `${food.y}px`;
+        scoreText.style.color = 'gold';
+        scoreText.style.fontSize = '24px';
+        scoreText.style.fontWeight = 'bold';
+        scoreText.style.textShadow = '0 0 10px rgba(255, 215, 0, 0.8)';
+        scoreText.style.animation = 'floatUp 1s ease-out forwards';
+        document.body.appendChild(scoreText);
+        
+        // Remove score text after animation
+        setTimeout(() => scoreText.remove(), 1000);
+    }
+
+    async loadPowerUpImages() {
+        const powerUps = {
+            doublePoints: 'path/to/double-points.png',  // You'll need to add these images
+            shield: 'path/to/shield.png',
+            miniSize: 'path/to/mini-size.png'
+        };
+
+        for (const [key, path] of Object.entries(powerUps)) {
+            this.powerUpImages[key] = new Image();
+            // this.powerUpImages[key].src = path;  // Uncomment when you have the images
         }
     }
 }
