@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Racoon</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div id="mainMenu" class="screen" style="display: flex;">
+        <h1>Flappy Racoon</h1>
+        <button id="playButton">Play Now</button>
+        <button id="shopButton">Shop</button>
+        <button id="backgroundButton">Backgrounds</button>
+        <button id="rewardsButton">Earn Coins</button>
+    </div>
+
+    <div id="gameCanvas" class="screen" style="display: none;">
+        <canvas id="game"></canvas>
+    </div>
+
+    <div id="gameOver" class="screen" style="display: none;">
+        <div class="game-over-content">
+            <h2>Game Over</h2>
+            <div class="score-container">
+                <div class="score-box">
+                    <i class="fas fa-star"></i>
+                    <p>Score</p>
+                    <span id="finalScore">0</span>
+                </div>
+                <div class="score-box">
+                    <i class="fas fa-coins"></i>
+                    <p>Coins</p>
+                    <span id="finalCoins">0</span>
+                </div>
+            </div>
+            <div class="game-over-buttons">
+                <button id="restartButton"><i class="fas fa-redo"></i> Play Again</button>
+                <button id="menuButton"><i class="fas fa-home"></i> Main Menu</button>
+            </div>
+            <div class="share-section">
+                <p>Share your score with friends!</p>
+                <button id="shareButton" class="share-button">
+                    <i class="fab fa-twitter"></i> Share on Twitter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="shop" class="screen" style="display: none;">
+        <h2>Character Shop</h2>
+        <div id="characters"></div>
+        <p>Your Coins: <span id="coinBalance">0</span></p>
+        <button id="backButton">Back to Menu</button>
+    </div>
+
+    <div id="backgrounds" class="screen" style="display: none;">
+        <h2>Select Background</h2>
+        <div id="backgroundsList"></div>
+        <button id="backToMenuButton">Back to Menu</button>
+    </div>
+
+    <div id="rewards" class="screen" style="display: none;">
+        <h2>Earn Free Coins!</h2>
+        <div class="rewards-container">
+            <div class="reward-card">
+                <i class="fab fa-twitter"></i>
+                <h3>Follow @aiarteth</h3>
+                <p>Earn 50 Coins</p>
+                <button class="reward-button" data-reward="twitter1">Claim Reward</button>
+            </div>
+            
+            <div class="reward-card">
+                <i class="fab fa-twitter"></i>
+                <h3>Follow @AI_RACX</h3>
+                <p>Earn 50 Coins</p>
+                <button class="reward-button" data-reward="twitter2">Claim Reward</button>
+            </div>
+            
+            <div class="reward-card">
+                <i class="fas fa-share-alt"></i>
+                <h3>Share Game</h3>
+                <p>Earn 100 Coins</p>
+                <button class="reward-button" data-reward="share">Share & Earn</button>
+            </div>
+        </div>
+        <button id="rewardsBackButton">Back to Menu</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
