@@ -22,27 +22,31 @@
     </div>
 
     <div id="gameOver" class="screen" style="display: none;">
-        <div class="game-over-content">
-            <h2>Game Over</h2>
-            <div class="score-container">
-                <div class="score-box">
-                    <i class="fas fa-star"></i>
-                    <p>Score</p>
-                    <span id="finalScore">0</span>
+        <div class="game-over-container">
+            <h2 class="game-over-title">Game Over</h2>
+            <div class="score-grid">
+                <div class="score-item">
+                    <i class="fas fa-star score-icon"></i>
+                    <div class="score-label">Score</div>
+                    <div class="score-value" id="finalScore">0</div>
                 </div>
-                <div class="score-box">
-                    <i class="fas fa-coins"></i>
-                    <p>Coins</p>
-                    <span id="finalCoins">0</span>
+                <div class="score-item">
+                    <i class="fas fa-coins score-icon"></i>
+                    <div class="score-label">Coins</div>
+                    <div class="score-value" id="finalCoins">0</div>
                 </div>
             </div>
             <div class="game-over-buttons">
-                <button id="restartButton"><i class="fas fa-redo"></i> Play Again</button>
-                <button id="menuButton"><i class="fas fa-home"></i> Main Menu</button>
+                <button id="restartButton" class="glow-button">
+                    <i class="fas fa-redo"></i> Play Again
+                </button>
+                <button id="menuButton" class="glow-button">
+                    <i class="fas fa-home"></i> Main Menu
+                </button>
             </div>
             <div class="share-section">
                 <p>Share your score with friends!</p>
-                <button id="shareButton" class="share-button">
+                <button id="shareButton" class="share-button glow-button">
                     <i class="fab fa-twitter"></i> Share on Twitter
                 </button>
             </div>
@@ -87,6 +91,19 @@
             </div>
         </div>
         <button id="rewardsBackButton">Back to Menu</button>
+    </div>
+
+    <div id="gameScores" class="game-scores">
+        <div class="score-display">
+            <div class="score-item current">
+                <i class="fas fa-star"></i>
+                <span id="currentScore">0</span>
+            </div>
+            <div class="score-item high">
+                <i class="fas fa-trophy"></i>
+                <span id="highScore">0</span>
+            </div>
+        </div>
     </div>
 
     <script src="game.js"></script>

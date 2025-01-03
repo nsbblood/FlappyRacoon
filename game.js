@@ -532,14 +532,20 @@ class Game {
 
     setCanvasSize() {
         const container = document.getElementById('gameCanvas');
-        this.canvas.width = container.clientWidth;
-        this.canvas.height = container.clientHeight;
+        if (!container) return;
         
-        // Set player starting position to 1/3 of screen width
+        // Set canvas size to window size
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        
+        // Center the player
         if (this.player) {
             this.player.x = this.canvas.width / 3;
             this.player.y = this.canvas.height / 2;
         }
+        
+        // Scale game objects based on screen size
+        this.scale = Math.min(this.canvas.width / 1920, this.canvas.height / 1080);
     }
 
     showNotification(message) {
@@ -892,6 +898,32 @@ class Game {
         }, 2000);
     }
 
+    updateScore() {
+        this.score++;
+        const scoreElement = document.getElementById('currentScore');
+        scoreElement.textContent = this.score;
+        
+        // Add update animation
+        scoreElement.classList.add('score-updated');
+        setTimeout(() => {
+            scoreElement.classList.remove('score-updated');
+        }, 300);
+
+        // Update high score if needed
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            const highScoreElement = document.getElementById('highScore');
+            highScoreElement.textContent = this.highScore;
+            localStorage.setItem('highScore', this.highScore);
+            
+            // Add update animation to high score
+            highScoreElement.classList.add('score-updated');
+            setTimeout(() => {
+                highScoreElement.classList.remove('score-updated');
+            }, 300);
+        }
+    }
+
     update(deltaTime) {
         // Update game speed
         const currentTime = performance.now();
@@ -923,7 +955,7 @@ class Game {
 
             if (!obstacle.passed && obstacle.x + obstacle.width < this.player.x) {
                 obstacle.passed = true;
-                this.score += 0.5;
+                this.updateScore();
                 if (this.foods.length < 2) {
                     this.addFood();
                 }
@@ -1077,6 +1109,8 @@ class Game {
     }
 
     drawPowerUps() {
+        this.ctx.save();
+        this.ctx.scale(this.scale, this.scale);
         this.powerUps.forEach(powerUp => {
             if (!powerUp.collected) {
                 this.ctx.save();
@@ -1107,6 +1141,7 @@ class Game {
                 this.ctx.restore();
             }
         });
+        this.ctx.restore();
     }
 
     getPowerUpColor(type) {
