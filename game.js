@@ -29,6 +29,31 @@ class Game {
             backgroundOpacity: 0.3  // Reduced background opacity
         };
         
+        // Sound system
+        this.sounds = {
+            background: new Audio('backgroundmusic.mp3'),
+            jump: new Audio('jump.mp3'),
+            hit: new Audio('hit.mp3'),
+            point: new Audio('pointbee.mp3'),
+            coin: new Audio('coincollect.mp3'),
+            button: new Audio('buttonclick.mp3'),
+            gameOver: new Audio('gameoversound.mp3'),
+            achievement: new Audio('achivement.mp3')
+        };
+
+        // Sound state
+        this.isMuted = localStorage.getItem('isMuted') === 'true';
+        this.volume = localStorage.getItem('volume') ? parseFloat(localStorage.getItem('volume')) : 0.4;
+
+        // Configure background music
+        this.sounds.background.loop = true;
+        this.updateVolume(this.volume);
+
+        // Set initial mute state for all sounds
+        Object.values(this.sounds).forEach(sound => {
+            sound.muted = this.isMuted;
+        });
+
         // Initialize game state
         this.gameStarted = false;
         this.gameOver = false;
@@ -193,6 +218,88 @@ class Game {
     }
 
     initializeUI() {
+        // Initialize sound controls
+        const soundToggleMain = document.getElementById('soundToggleMain');
+        const soundToggleGameOver = document.getElementById('soundToggleGameOver');
+        const volumeSliderMain = document.getElementById('volumeSliderMain');
+        const volumeSliderGameOver = document.getElementById('volumeSliderGameOver');
+
+        // Set initial volume slider values
+        const volumePercent = Math.round(this.volume * 100);
+        volumeSliderMain.value = volumePercent;
+        volumeSliderGameOver.value = volumePercent;
+
+        const updateSoundButtons = () => {
+            [soundToggleMain, soundToggleGameOver].forEach(button => {
+                if (button) {
+                    if (this.isMuted) {
+                        button.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                        button.classList.add('muted');
+                    } else {
+                        button.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                        button.classList.remove('muted');
+                    }
+                }
+            });
+        };
+
+        const toggleSound = () => {
+            this.isMuted = !this.isMuted;
+            localStorage.setItem('isMuted', this.isMuted);
+            
+            Object.values(this.sounds).forEach(sound => {
+                sound.muted = this.isMuted;
+            });
+
+            if (this.isMuted) {
+                this.sounds.background.pause();
+            } else {
+                this.sounds.background.play().catch(e => console.log('Audio play failed:', e));
+            }
+            
+            updateSoundButtons();
+        };
+
+        const updateVolume = (value) => {
+            this.volume = value / 100;
+            localStorage.setItem('volume', this.volume);
+            this.updateVolume(this.volume);
+        };
+
+        // Add click handlers to sound buttons
+        [soundToggleMain, soundToggleGameOver].forEach(button => {
+            if (button) {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleSound();
+                });
+            }
+        });
+
+        // Add volume slider handlers
+        [volumeSliderMain, volumeSliderGameOver].forEach(slider => {
+            if (slider) {
+                slider.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    updateVolume(value);
+                    // Sync other slider
+                    [volumeSliderMain, volumeSliderGameOver].forEach(s => {
+                        if (s && s !== e.target) {
+                            s.value = value;
+                        }
+                    });
+                });
+            }
+        });
+
+        // Set initial button states
+        updateSoundButtons();
+
+        // Start background music if not muted
+        if (!this.isMuted) {
+            this.sounds.background.play().catch(e => console.log('Audio play failed:', e));
+        }
+
         document.getElementById('playButton').addEventListener('click', async () => {
             if (!this.imagesLoaded) {
                 console.log('Waiting for images to load...');
@@ -570,6 +677,11 @@ class Game {
     jump() {
         if (this.gameOver) return;
         this.player.velocity = this.config.jumpForce;
+        
+        if (!this.isMuted) {
+            this.sounds.jump.currentTime = 0;
+            this.sounds.jump.play().catch(e => console.log('Audio play failed:', e));
+        }
         
         // Add jump particles
         for (let i = 0; i < 8; i++) {
@@ -1211,28 +1323,26 @@ class Game {
             this.gameOver = true;
             this.gameStarted = false;
 
-            // Create explosion particle effect
-            for (let i = 0; i < 40; i++) {
-                const angle = (Math.PI * 2 / 40) * i;
-                const speed = 2 + Math.random() * 3;
-                const color = `hsl(${Math.random() * 60}, 100%, 70%)`; // Yellow-orange colors
-                
-                this.particles.push(new Particle(
-                    this.player.x + this.player.width / 2,
-                    this.player.y + this.player.height / 2,
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed,
-                    color
-                ));
+            if (!this.isMuted) {
+                this.sounds.background.pause();
+                this.sounds.hit.play().catch(e => console.log('Audio play failed:', e));
+                setTimeout(() => {
+                    this.sounds.gameOver.play().catch(e => console.log('Audio play failed:', e));
+                }, 500);
             }
 
-            // Update high score with celebration
+            // Update high score
             if (this.score > this.highScore) {
                 this.highScore = Math.floor(this.score);
                 localStorage.setItem('highScore', this.highScore);
-                this.celebrateHighScore();
+                
+                if (!this.isMuted) {
+                    setTimeout(() => {
+                        this.sounds.achievement.play().catch(e => console.log('Audio play failed:', e));
+                    }, 1000);
+                }
             }
-
+            
             // Update coins with sparkle effect
             this.savedCoins += this.coins;
             localStorage.setItem('coins', this.savedCoins);
@@ -1281,11 +1391,13 @@ class Game {
     }
 
     collectFood(food) {
-        // Increase score and coins
-        this.coins += this.config.coinValue;
-        this.score += 5;  // Bonus score for collecting coins
+        if (!this.isMuted) {
+            this.sounds.coin.currentTime = 0;
+            this.sounds.coin.play().catch(e => console.log('Audio play failed:', e));
+        }
         
-        // Trigger invincibility
+        this.coins += this.config.coinValue;
+        this.score += 5;
         this.isInvincible = true;
         setTimeout(() => {
             this.isInvincible = false;
@@ -1323,17 +1435,41 @@ class Game {
         setTimeout(() => scoreText.remove(), 1000);
     }
 
-    async loadPowerUpImages() {
-        const powerUps = {
-            doublePoints: 'path/to/double-points.png',  // You'll need to add these images
-            shield: 'path/to/shield.png',
-            miniSize: 'path/to/mini-size.png'
-        };
+    updateVolume(volume) {
+        // Update volume for all sounds
+        Object.values(this.sounds).forEach(sound => {
+            sound.volume = volume;
+        });
+    }
 
-        for (const [key, path] of Object.entries(powerUps)) {
-            this.powerUpImages[key] = new Image();
-            // this.powerUpImages[key].src = path;  // Uncomment when you have the images
+    startGame() {
+        if (!this.imagesLoaded) {
+            console.log('Images not loaded yet');
+            return;
         }
+
+        // Reset game state
+        this.resetGameObjects();
+        this.gameOver = false;
+        this.gameStarted = true;
+        this.score = 0;
+        
+        // Start or resume background music if not muted
+        if (!this.isMuted) {
+            this.sounds.background.currentTime = 0;
+            this.sounds.background.play().catch(e => {
+                console.log('Audio play failed:', e);
+                // Try playing again after user interaction
+                document.addEventListener('click', () => {
+                    if (!this.isMuted) {
+                        this.sounds.background.play().catch(e => console.log('Audio play failed:', e));
+                    }
+                }, { once: true });
+            });
+        }
+        
+        // Start game loop
+        this.gameLoop();
     }
 }
 

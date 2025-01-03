@@ -4,12 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com;">
-    <title>Flappy Racoon for AI-RACX</title>
+    <title>Flappy Racoon</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
     <div id="mainMenu" class="screen" style="display: flex;">
+        <div class="sound-controls">
+            <button id="soundToggleMain" class="control-button">
+                <i class="fa-solid fa-volume-high"></i>
+            </button>
+            <div class="volume-slider-container">
+                <input type="range" id="volumeSliderMain" class="volume-slider" min="0" max="100" value="40">
+            </div>
+        </div>
         <h1>Flappy Racoon for AI-RACX</h1>
         <div class="instructions">
             <p>🎮 How to Play:</p>
@@ -32,6 +40,14 @@
     </div>
 
     <div id="gameOver" class="screen" style="display: none;">
+        <div class="sound-controls">
+            <button id="soundToggleGameOver" class="control-button">
+                <i class="fa-solid fa-volume-high"></i>
+            </button>
+            <div class="volume-slider-container">
+                <input type="range" id="volumeSliderGameOver" class="volume-slider" min="0" max="100" value="40">
+            </div>
+        </div>
         <div class="game-over-container">
             <h2 class="game-over-title">Game Over</h2>
             <div class="score-grid">
