@@ -1310,3 +1310,36 @@ input:checked + .checkbox-slider:before {
         width: 80px;
     }
 }
+
+.center-sound-controls {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+.center-sound-controls .control-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    color: white !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+    font-size: 22px;
+}
+
+.center-sound-controls .control-button:hover {
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.center-sound-controls .control-button i {
+    color: white;
+}

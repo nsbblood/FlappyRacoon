@@ -685,18 +685,12 @@ class Game {
         
         // Add jump particles
         for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI / 4) + (Math.PI / 2 * Math.random()); // Spread particles in a downward cone
-            const speed = 2 + Math.random() * 3;
-            const size = 3 + Math.random() * 4;
-            
             this.particles.push(new Particle(
                 this.player.x + this.player.width / 2,
                 this.player.y + this.player.height,
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed,
-                size,
-                'rgba(255, 255, 255, 0.8)',
-                0.8
+                (Math.random() - 0.5) * 3,
+                Math.random() * 2 + 3,
+                'jump'
             ));
         }
     }
@@ -1134,6 +1128,31 @@ class Game {
 
         // Update score
         this.score += this.config.scoreMultiplier;
+
+        // Add trail particles
+        if (Math.random() < 0.3) {
+            this.particles.push(new Particle(
+                this.player.x + this.player.width / 2,
+                this.player.y + this.player.height / 2,
+                -Math.random() * 2,
+                (Math.random() - 0.5) * 2,
+                'trail'
+            ));
+        }
+
+        // Check for power-up effects
+        if (this.activePowerUps.doublePoints) {
+            // Add rainbow particles for double points
+            if (Math.random() < 0.2) {
+                this.particles.push(new Particle(
+                    this.player.x + Math.random() * this.player.width,
+                    this.player.y + Math.random() * this.player.height,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    'rainbow'
+                ));
+            }
+        }
     }
 
     addObstacle() {
@@ -1406,6 +1425,17 @@ class Game {
     }
 
     collectFood(food) {
+        // Add collection particles
+        for (let i = 0; i < 12; i++) {
+            this.particles.push(new Particle(
+                food.x + food.width / 2,
+                food.y + food.height / 2,
+                (Math.random() - 0.5) * 4,
+                (Math.random() - 0.5) * 4,
+                'collect'
+            ));
+        }
+        
         if (!this.isMuted) {
             this.sounds.coin.currentTime = 0;
             this.sounds.coin.play().catch(e => console.log('Audio play failed:', e));
@@ -1417,21 +1447,6 @@ class Game {
         setTimeout(() => {
             this.isInvincible = false;
         }, this.config.invincibilityTime);
-        
-        // Create sparkle particles
-        for (let i = 0; i < 15; i++) {
-            const angle = (Math.PI * 2 / 15) * i;
-            const speed = 2 + Math.random() * 2;
-            const color = `hsl(${Math.random() * 360}, 100%, 70%)`;
-            
-            this.particles.push(new Particle(
-                food.x + food.width / 2,
-                food.y + food.height / 2,
-                Math.cos(angle) * speed,
-                Math.sin(angle) * speed,
-                color
-            ));
-        }
         
         // Create floating score text
         const scoreText = document.createElement('div');
@@ -1493,31 +1508,76 @@ class Game {
 }
 
 class Particle {
-    constructor(x, y, vx, vy, size, color, alpha) {
+    constructor(x, y, vx, vy, type = 'trail') {
         this.x = x;
         this.y = y;
         this.vx = vx;
         this.vy = vy;
-        this.size = size;
-        this.color = color;
-        this.alpha = alpha;
+        this.type = type;
+        this.alpha = 1;
         this.gravity = 0.1;
+        
+        // Different particle types
+        switch(type) {
+            case 'trail':
+                this.size = Math.random() * 3 + 2;
+                this.color = `hsl(${Math.random() * 60 + 180}, 100%, 70%)`; // Blue to cyan
+                this.alpha = 0.8;
+                this.decay = 0.02;
+                break;
+            case 'jump':
+                this.size = Math.random() * 4 + 3;
+                this.color = `hsl(${Math.random() * 60 + 30}, 100%, 70%)`; // Yellow to orange
+                this.alpha = 1;
+                this.decay = 0.03;
+                break;
+            case 'collect':
+                this.size = Math.random() * 3 + 2;
+                this.color = 'gold';
+                this.alpha = 1;
+                this.decay = 0.02;
+                break;
+            case 'rainbow':
+                this.size = Math.random() * 4 + 2;
+                this.hue = Math.random() * 360;
+                this.color = `hsl(${this.hue}, 100%, 60%)`;
+                this.alpha = 0.9;
+                this.decay = 0.015;
+                break;
+        }
     }
     
     update() {
         this.x += this.vx;
         this.y += this.vy;
         this.vy += this.gravity;
-        this.alpha -= 0.02;
+        this.alpha -= this.decay;
+        
+        if (this.type === 'rainbow') {
+            this.hue = (this.hue + 5) % 360;
+            this.color = `hsl(${this.hue}, 100%, 60%)`;
+        }
     }
     
     draw(ctx) {
         ctx.save();
         ctx.globalAlpha = this.alpha;
         ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        
+        if (this.type === 'trail') {
+            // Trail particles are more elongated
+            ctx.beginPath();
+            ctx.ellipse(this.x, this.y, this.size * 2, this.size, Math.atan2(this.vy, this.vx), 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Other particles are circular with glow
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
         ctx.restore();
     }
 }
