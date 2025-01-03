@@ -409,24 +409,27 @@ class Game {
             
             this.updateShop();
         } else {
-            alert('Not enough coins!');
+            this.showNotification(`Not enough coins! You need ${character.price - this.savedCoins} more coins`);
         }
     }
     
     purchaseBackground(background) {
-        if (this.savedCoins >= background.price) {
+        if (background.unlocked) {
+            this.selectBackground(background);
+        } else if (this.savedCoins >= background.price) {
             this.savedCoins -= background.price;
-            localStorage.setItem('coins', this.savedCoins);
-            
             background.unlocked = true;
-            const unlockedBackgrounds = this.backgrounds
-                .filter(bg => bg.unlocked)
-                .map(bg => bg.id);
+            
+            const unlockedBackgrounds = JSON.parse(localStorage.getItem('unlockedBackgrounds')) || [1];
+            unlockedBackgrounds.push(background.id);
             
             localStorage.setItem('unlockedBackgrounds', JSON.stringify(unlockedBackgrounds));
+            localStorage.setItem('coins', this.savedCoins);
+            
+            document.getElementById('coinBalance').textContent = this.savedCoins;
             this.updateBackgroundsList();
         } else {
-            alert('Not enough coins!');
+            this.showNotification(`Not enough coins! You need ${background.price - this.savedCoins} more coins`);
         }
     }
 
@@ -455,29 +458,32 @@ class Game {
 
     startGame() {
         if (!this.imagesLoaded) {
-            console.error('Images not loaded yet');
+            console.log('Images not loaded yet');
             return;
         }
 
         // Reset game state
         this.gameOver = false;
+        this.gameStarted = true;
         this.score = 0;
         this.coins = 0;
+        this.config.gameSpeed = this.config.initialGameSpeed;
+        this.lastSpeedIncrease = 0;
+        
+        // Clear existing objects
         this.obstacles = [];
         this.foods = [];
         this.particles = [];
-        this.config.gameSpeed = this.config.initialGameSpeed;
-        this.lastSpeedIncrease = performance.now();
         
-        // Reset player position
+        // Set initial player position
         this.player = {
-            x: this.canvas.width / 4,
+            x: this.canvas.width / 3,
             y: this.canvas.height / 2,
             width: this.config.playerSize,
             height: this.config.playerSize,
             velocity: 0
         };
-        
+
         // Ensure canvas is properly sized
         this.setCanvasSize();
         
@@ -499,6 +505,31 @@ class Game {
         const container = document.getElementById('gameCanvas');
         this.canvas.width = container.clientWidth;
         this.canvas.height = container.clientHeight;
+        
+        // Set player starting position to 1/3 of screen width
+        if (this.player) {
+            this.player.x = this.canvas.width / 3;
+            this.player.y = this.canvas.height / 2;
+        }
+    }
+
+    showNotification(message) {
+        // Remove any existing notification
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Remove notification after animation completes
+        setTimeout(() => {
+            notification.remove();
+        }, 2500);
     }
 
     jump() {
