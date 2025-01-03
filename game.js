@@ -606,50 +606,7 @@ class Game {
         this.ctx.restore();
 
         // Draw obstacles with enhanced visuals
-        this.obstacles.forEach(obstacle => {
-            this.ctx.save();
-            
-            // Create rich gradient for obstacles
-            const gradient = this.ctx.createLinearGradient(
-                obstacle.x, obstacle.y,
-                obstacle.x + obstacle.width, obstacle.y + obstacle.height
-            );
-            gradient.addColorStop(0, '#2ecc71');  // Bright green
-            gradient.addColorStop(0.5, '#27ae60'); // Medium green
-            gradient.addColorStop(1, '#219a51');   // Darker green
-            
-            // Add strong shadow for depth
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            this.ctx.shadowBlur = 15;
-            this.ctx.shadowOffsetX = 5;
-            this.ctx.shadowOffsetY = 5;
-            
-            // Draw rounded rectangle
-            this.ctx.fillStyle = gradient;
-            this.ctx.beginPath();
-            this.ctx.roundRect(
-                obstacle.x,
-                obstacle.y,
-                obstacle.width,
-                obstacle.height,
-                10  // Rounded corners radius
-            );
-            this.ctx.fill();
-            
-            // Add highlight effect
-            const highlightGradient = this.ctx.createLinearGradient(
-                obstacle.x, obstacle.y,
-                obstacle.x + obstacle.width, obstacle.y
-            );
-            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-            highlightGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
-            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
-            
-            this.ctx.fillStyle = highlightGradient;
-            this.ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, 5);
-            
-            this.ctx.restore();
-        });
+        this.drawObstacles();
 
         // Draw player with enhanced effects
         this.drawPlayer();
@@ -724,6 +681,87 @@ class Game {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
         this.ctx.restore();
+    }
+
+    drawObstacles() {
+        this.obstacles.forEach(obstacle => {
+            const gradient = this.ctx.createLinearGradient(
+                obstacle.x,
+                obstacle.y,
+                obstacle.x + obstacle.width,
+                obstacle.y + obstacle.height
+            );
+            
+            // Modern gradient colors
+            gradient.addColorStop(0, '#2ecc71');   // Yeşilin açık tonu
+            gradient.addColorStop(0.5, '#27ae60'); // Orta ton
+            gradient.addColorStop(1, '#219a51');   // Koyu ton
+
+            this.ctx.save();
+            
+            // Gölge efekti
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            this.ctx.shadowBlur = 15;
+            this.ctx.shadowOffsetX = 5;
+            this.ctx.shadowOffsetY = 5;
+            
+            // Yuvarlatılmış köşeler için path çizimi
+            const radius = 15; // köşe yuvarlaklığı
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(obstacle.x + radius, obstacle.y);
+            this.ctx.lineTo(obstacle.x + obstacle.width - radius, obstacle.y);
+            this.ctx.quadraticCurveTo(obstacle.x + obstacle.width, obstacle.y, obstacle.x + obstacle.width, obstacle.y + radius);
+            this.ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height - radius);
+            this.ctx.quadraticCurveTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height, obstacle.x + obstacle.width - radius, obstacle.y + obstacle.height);
+            this.ctx.lineTo(obstacle.x + radius, obstacle.y + obstacle.height);
+            this.ctx.quadraticCurveTo(obstacle.x, obstacle.y + obstacle.height, obstacle.x, obstacle.y + obstacle.height - radius);
+            this.ctx.lineTo(obstacle.x, obstacle.y + radius);
+            this.ctx.quadraticCurveTo(obstacle.x, obstacle.y, obstacle.x + radius, obstacle.y);
+            this.ctx.closePath();
+            
+            // Gradient fill
+            this.ctx.fillStyle = gradient;
+            this.ctx.fill();
+            
+            // Parlak kenar efekti
+            const highlight = this.ctx.createLinearGradient(
+                obstacle.x,
+                obstacle.y,
+                obstacle.x + 5,
+                obstacle.y + obstacle.height
+            );
+            highlight.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+            highlight.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
+            highlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            this.ctx.fillStyle = highlight;
+            this.ctx.fill();
+            
+            // İnce kenar çizgisi
+            this.ctx.strokeStyle = '#219a51';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            
+            this.ctx.restore();
+            
+            // Süsleme çizgileri
+            const stripeCount = 3;
+            const stripeSpacing = obstacle.height / (stripeCount + 1);
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.1;
+            this.ctx.strokeStyle = '#fff';
+            this.ctx.lineWidth = 2;
+            
+            for (let i = 1; i <= stripeCount; i++) {
+                const y = obstacle.y + (stripeSpacing * i);
+                this.ctx.beginPath();
+                this.ctx.moveTo(obstacle.x + 10, y);
+                this.ctx.lineTo(obstacle.x + obstacle.width - 10, y);
+                this.ctx.stroke();
+            }
+            this.ctx.restore();
+        });
     }
 
     drawPlayer() {
@@ -1005,21 +1043,37 @@ class Game {
     }
 
     addPowerUp() {
-        const types = Object.keys(this.config.powerUps);
+        if (this.obstacles.length < 2) return;
+
+        // Find the last obstacle
+        const lastObstacle = this.obstacles[this.obstacles.length - 1];
+        
+        // Calculate the gap center between top and bottom obstacles
+        const gapCenter = lastObstacle.y + lastObstacle.height + this.config.obstacleGap / 2;
+        
+        // Add some random vertical variation but keep it within the gap
+        const maxVariation = this.config.obstacleGap / 4; // Use only 1/4 of the gap size for variation
+        const yVariation = (Math.random() - 0.5) * maxVariation;
+        
+        // Position power-up in the center of the gap with slight variation
+        const powerUpY = gapCenter + yVariation;
+        
+        // Position power-up horizontally after the obstacle with some distance
+        const powerUpX = lastObstacle.x + lastObstacle.width + 100;
+        
+        // Randomly select power-up type
+        const types = ['doublePoints', 'shield', 'miniSize'];
         const type = types[Math.floor(Math.random() * types.length)];
         
-        if (Math.random() < this.config.powerUps[type].chance) {
-            const powerUp = {
-                x: this.canvas.width,
-                y: Math.random() * (this.canvas.height - 40),
-                width: 40,
-                height: 40,
-                type: type,
-                collected: false
-            };
-            
-            this.powerUps.push(powerUp);
-        }
+        this.powerUps.push({
+            x: powerUpX,
+            y: powerUpY,
+            width: 30,
+            height: 30,
+            type: type,
+            collected: false,
+            active: false
+        });
     }
 
     drawPowerUps() {
