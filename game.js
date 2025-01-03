@@ -318,10 +318,10 @@ class Game {
     }
     
     handleShare() {
-        const shareText = `🦝 Just scored ${Math.floor(this.score)} points in Flappy Racoon! 🎮\n\nAn adorable game made by @aiarteth for @AI_RACX! Try to beat my score!\n\n#FlappyRacoon #GameChallenge #IndieGame`;
+        const shareText = `🦝 Just scored ${Math.floor(this.score)} points in Flappy Racoon! 🎮\n\nAn adorable game made by @aiarteth for @AI_RACX! Try to beat my score!\nhttps://airacx.playdaos.fun\n\n#FlappyRacoon #GameChallenge #IndieGame`;
         
         const gameUrl = 'https://airacx.playdaos.fun';
-        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(gameUrl)}`;
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
         window.open(twitterShareUrl, '_blank');
         
         if (!this.claimedRewards['share']) {
